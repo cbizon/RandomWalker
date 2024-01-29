@@ -3,6 +3,7 @@ import json
 import jsonlines
 import random
 from collections import defaultdict
+from datetime import datetime as dt
 
 def load_nodes(inf):
     node_ids = {}
@@ -30,7 +31,7 @@ def create_pq(record):
     # THis has to be json instead of orjson because we need to sort the keys
     return json.dumps(pq, sort_keys=True)
 
-def load_edges(inf, node_ids):
+def load_edges(inf, node_ids, bad_predicates=set(["biolink:subclass_of"])):
     neighbors = [[] for i in range(len(node_ids))]
     pq_to_num = {}
     onehops = defaultdict(set)
@@ -40,6 +41,8 @@ def load_edges(inf, node_ids):
             try:
                 subject_id = node_ids[edge["subject"]]
                 object_id  = node_ids[edge["object"]]
+                if edge["predicate"] in bad_predicates:
+                    continue
                 pq = create_pq(edge)
                 if pq not in pq_to_num:
                     pq_to_num[pq] = len(pq_to_num) + 1
@@ -77,9 +80,20 @@ def convert_to_meta_walk(walk, nodes_to_cats):
     meta_walk.append( nodes_to_cats[walk[-1]] )
     return tuple(meta_walk)
 
+def write_walks(meta_walks, outfname = "meta_walks.json"):
+    with open(outfname, 'w') as outf:
+        outf.write("{\n")
+        for mw, direct_edges in meta_walks.items():
+            outf.write(f'  "{str(mw)}": {{')
+            for de, count in direct_edges.items():
+                outf.write(f'"{str(tuple(de))}": {count}, ')
+            outf.write("},\n")
+        outf.write("}\n")
+
 def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen):
     num_nodes = len(nodes_to_ints)
     meta_walks = defaultdict(lambda: defaultdict(int))
+    start = dt.now()
     for i in range(nwalks):
         walk = generate_walk(num_nodes, neighborlist, walklen)
         meta_walk = convert_to_meta_walk(walk, nodes_to_cats)
@@ -91,31 +105,28 @@ def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, wa
         else:
             direct_edges = frozenset()
         meta_walks[meta_walk][direct_edges] += 1
-    with open("meta_walks.json", 'w') as outf:
-        outf.write("{\n")
-        for mw, direct_edges in meta_walks.items():
-            outf.write(f'  "{str(mw)}": {{')
-            for de, count in direct_edges.items():
-                outf.write(f'"{str(tuple(de))}": {count}, ')
-            outf.write("},\n")
-        outf.write("}\n")
+        if i % 100000 == 0:
+            write_walks(meta_walks, outfname="meta_walks.json")
+            end = dt.now()
+            delta = end - start
+            print(f"Generated {i} walks in {delta.seconds} seconds. {i/delta.seconds} walks per second")
+    write_walks(meta_walks, outfname = "meta_walks_final.json")
 
 def write_ids(thing_to_ids, filename):
     with open(filename, 'w') as outf:
         for thing, id in thing_to_ids.items():
             outf.write(f"{thing}\t{id}\n")
 
-def go(nfilename, efilename):
+def go(nfilename, efilename, nwalks, walklength=2):
     node_ids, node_categories = load_nodes(nfilename)
     neighbors, pq_to_num, one_hops = load_edges(efilename, node_ids)
     write_ids(node_ids, "nodes_to_nums")
     write_ids(node_categories, "nodes_to_cats")
     write_ids(pq_to_num, "pq_to_num")
-    nwalks = 100
-    walklength =2
     random_walks(node_ids, node_categories, neighbors, one_hops, nwalks, walklength)
 
 if __name__ == "__main__":
     nodefilename = sys.argv[1]
     edgefilename = sys.argv[2]
-    go(nodefilename, edgefilename)
+    numwalks = int(sys.argv[3])
+    go(nodefilename, edgefilename, numwalks)
