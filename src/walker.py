@@ -112,7 +112,7 @@ def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, wa
             write_walks(meta_walks, outfname="meta_walks.json")
             end = dt.now()
             delta = end - start
-            print(f"Generated {i} walks in {delta.seconds} seconds. {i/delta.seconds} walks per second")
+            print(f"Generated {i} walks in {delta.total_seconds()} seconds. {i/delta.total_seconds()} walks per second")
     write_walks(meta_walks, outfname = "meta_walks_final.json")
 
 def write_ids(thing_to_ids, filename):
