@@ -31,18 +31,17 @@ def create_pq(record):
     # THis has to be json instead of orjson because we need to sort the keys
     return json.dumps(pq, sort_keys=True)
 
-def load_edges(inf, node_ids, bad_predicates=set(["biolink:subclass_of"])):
+def load_edges(inf, node_ids):
     neighbors = [[] for i in range(len(node_ids))]
     pq_to_num = {}
     onehops = defaultdict(set)
     n_edges = 0
+    start = dt.now()
     with jsonlines.open(inf, 'r') as inf:
         for edge in inf:
             try:
                 subject_id = node_ids[edge["subject"]]
                 object_id  = node_ids[edge["object"]]
-                if edge["predicate"] in bad_predicates:
-                    continue
                 pq = create_pq(edge)
                 if pq not in pq_to_num:
                     pq_to_num[pq] = len(pq_to_num) + 1
@@ -54,9 +53,11 @@ def load_edges(inf, node_ids, bad_predicates=set(["biolink:subclass_of"])):
             except:
                 print(f"Error on edge: {edge}")
             n_edges += 1
-            if n_edges % 100000 == 0:
+            if n_edges % 10000000 == 0:
                 print(f"Loaded {n_edges} edges")
-        return neighbors, pq_to_num, onehops
+    end = dt.now()
+    print("Load time:", end - start)
+    return neighbors, pq_to_num, onehops
 
 def generate_walk(num_nodes, neighborlist, walklen):
     while True:
