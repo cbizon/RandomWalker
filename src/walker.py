@@ -62,6 +62,8 @@ def load_edges(inf, node_ids):
 def generate_walk(num_nodes, neighborlist, walklen):
     while True:
         next_node = random.randint(0, num_nodes-1)
+        if len(neighborlist[next_node]) == 0:
+            continue
         walk = [next_node]
         used_nodes = set()
         used_nodes.add(next_node)
