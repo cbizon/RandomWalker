@@ -133,8 +133,10 @@ def write_walks(meta_walks, outfname = "meta_walks.json"):
         outf.write("{\n")
         for mw, direct_edges in meta_walks.items():
             outf.write(f'  "{str(mw)}": {{')
+            des = []
             for de, count in direct_edges.items():
-                outf.write(f'"{str(tuple(de))}": {count}, ')
+                des.append(f'"{str(tuple(de))}": {count}' )
+            outf.write(", ".join(des))
             outf.write("},\n")
         outf.write("}\n")
 
