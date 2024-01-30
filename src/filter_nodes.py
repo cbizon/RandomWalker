@@ -10,7 +10,7 @@ def go(edge_file, node_in, node_out):
     with jsonlines.open(node_in, 'r') as inf, jsonlines.open(node_out, 'w') as outf:
         for line in inf:
             if line["id"] in keepnodes:
-                outf.dumps(line)
+                outf.write(line)
 
 if __name__ == "__main__":
     edge_file = sys.argv[1]
