@@ -18,7 +18,6 @@ def read_pqs(indir):
         for line in inf:
             x = line.strip().split('\t')
             num = int(x[1])
-            print(x[0])
             pq = json.loads(x[0])
             num_to_pq[num] = pq
     return num_to_pq
@@ -39,13 +38,14 @@ def go(indir):
                 pqnum = -pqnum
                 pq = pqs[pqnum]
                 pq["reverse"] = True
+            else:
+                pq = pqs[pqnum]
             x["metapath"].append( pq )
-        x["metapath"].append( categories[pathtuple[i]] )
+        x["metapath"].append( categories[pathtuple[len(pathtuple)-1]] )
         for direct_edge, count in direct_edges.items():
             y = {"count": count, "edge": []}
             edges_tuple = ast.literal_eval(direct_edge)
-            for edge in edges_tuple:
-                pqnum = edge[0]
+            for pqnum in edges_tuple:
                 if pqnum < 0:
                     pqnum = -pqnum
                     pq = pqs[pqnum]
