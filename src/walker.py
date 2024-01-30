@@ -4,16 +4,60 @@ import jsonlines
 import random
 from collections import defaultdict
 from datetime import datetime as dt
+from bmt import Toolkit
+
+
+class TypeHandler:
+    def __init__(self):
+        self.type_to_descendants = self.create_type_to_descendants()
+        self.deeptypescache={}
+    def create_type_to_descendants(self):
+        # Create a dictionary from type to all of its descendants
+        tk = Toolkit()
+        type_to_descendants = {}
+        for t in tk.get_descendants('biolink:NamedThing', formatted=True):
+            try:
+                type_to_descendants[t] = tk.get_descendants(t, formatted=True)
+            except:
+                print("Error with type: " + t)
+                pass
+        return type_to_descendants
+
+    def get_deepest_types(self, typelist):
+        """Given a list of types, examine self.type_to_descendants and return a list of the types
+        from typelist that do not have a descendant in the list"""
+        # Let's have a cache because we see the same lists over and over and hitting BMT is slow
+        fs = frozenset(typelist)
+        if fs in self.deeptypescache:
+            return self.deeptypescache[fs]
+        deepest_types = []
+        for t in typelist:
+            if t not in self.type_to_descendants:
+                # This covers mixins
+                # deepest_types.append(t)
+                continue
+            descendants = self.type_to_descendants[t]
+            # 1 because the descendants include the type itself
+            if len(set(typelist).intersection(descendants)) == 1:
+                deepest_types.append(t)
+        deepest_types = frozenset(deepest_types)
+        self.deeptypescache[fs] = deepest_types
+        return deepest_types
 
 def load_nodes(inf):
     node_ids = {}
     node_categories = {}
+    handler = TypeHandler()
+    cat_map = {}
     with jsonlines.open(inf, 'r') as inf:
         for node in inf:
             node_num = len(node_ids)
             node_ids[node["id"]] = node_num
-            node_categories[node_num] = node["category"][0]
-    return node_ids, node_categories
+            categories = handler.get_deepest_types(node["category"])
+            if categories not in cat_map:
+                cat_map[categories] = len(cat_map)
+            node_categories[node_num] = cat_map[categories]
+    return node_ids, node_categories, cat_map
 
 def create_pq(record):
     # Given an edge json record, create a string that represents the predicate and qualifiers
@@ -121,11 +165,12 @@ def write_ids(thing_to_ids, filename):
             outf.write(f"{thing}\t{id}\n")
 
 def go(nfilename, efilename, nwalks, walklength=2):
-    node_ids, node_categories = load_nodes(nfilename)
+    node_ids, node_categories, category_map = load_nodes(nfilename)
     neighbors, pq_to_num, one_hops = load_edges(efilename, node_ids)
     write_ids(node_ids, "nodes_to_nums")
     write_ids(node_categories, "nodes_to_cats")
     write_ids(pq_to_num, "pq_to_num")
+    write_ids(category_map, "category_map")
     random_walks(node_ids, node_categories, neighbors, one_hops, nwalks, walklength)
 
 if __name__ == "__main__":
