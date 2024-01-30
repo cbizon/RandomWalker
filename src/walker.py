@@ -159,7 +159,7 @@ def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, wa
         else:
             direct_edges = frozenset()
         meta_walks[meta_walk][direct_edges] += 1
-        if i % 1000000 == 0:
+        if i % 100000000 == 0:
             write_walks(meta_walks, outfname="meta_walks.json")
             end = dt.now()
             delta = end - start
