@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import jsonlines
@@ -137,7 +138,7 @@ def write_walks(meta_walks, outfname = "meta_walks.json"):
             outf.write("},\n")
         outf.write("}\n")
 
-def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen):
+def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen, odir):
     num_nodes = len(nodes_to_ints)
     meta_walks = defaultdict(lambda: defaultdict(int))
     start = dt.now()
@@ -157,24 +158,27 @@ def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, wa
             end = dt.now()
             delta = end - start
             print(f"Generated {i} walks in {delta.total_seconds()} seconds. {i/delta.total_seconds()} walks per second")
-    write_walks(meta_walks, outfname = "meta_walks_final.json")
+    write_walks(meta_walks, outfname = os.path.join(odir,"meta_walks_final.json"))
 
-def write_ids(thing_to_ids, filename):
-    with open(filename, 'w') as outf:
+def write_ids(thing_to_ids, odir, filename):
+    ofn = os.path.join(odir, filename)
+    with open(ofn, 'w') as outf:
         for thing, id in thing_to_ids.items():
             outf.write(f"{thing}\t{id}\n")
 
-def go(nfilename, efilename, nwalks, walklength=2):
+def go(nfilename, efilename, odir, nwalks, walklength=2):
     node_ids, node_categories, category_map = load_nodes(nfilename)
     neighbors, pq_to_num, one_hops = load_edges(efilename, node_ids)
-    write_ids(node_ids, "nodes_to_nums")
-    write_ids(node_categories, "nodes_to_cats")
-    write_ids(pq_to_num, "pq_to_num")
-    write_ids(category_map, "category_map")
-    random_walks(node_ids, node_categories, neighbors, one_hops, nwalks, walklength)
+    write_ids(node_ids, odir, "nodes_to_nums")
+    write_ids(node_categories, odir, "nodes_to_cats")
+    write_ids(pq_to_num, odir, "pq_to_num")
+    write_ids(category_map, odir, "category_map")
+    random_walks(node_ids, node_categories, neighbors, one_hops, nwalks, walklength, odir)
 
 if __name__ == "__main__":
     nodefilename = sys.argv[1]
     edgefilename = sys.argv[2]
-    numwalks = int(sys.argv[3])
-    go(nodefilename, edgefilename, numwalks)
+    outdir = sys.argv[3]
+    numwalks = int(sys.argv[4])
+    walklen = int(sys.argv[5])
+    go(nodefilename, edgefilename, outdir, numwalks, walklen)
