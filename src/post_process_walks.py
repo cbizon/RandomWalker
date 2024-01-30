@@ -28,8 +28,9 @@ def go(indir):
     pqs = read_pqs(indir)
     with open(os.path.join(indir, "meta_walks_final.json"), 'r') as inf:
         paths = json.load(inf)
+    results = []
     for path, direct_edges in paths.items():
-        x = {"metapath": [], "direct_edges": {}}
+        x = {"metapath": [], "direct_edges": []}
         pathtuple = ast.literal_eval(path)
         for i in range(0, len(pathtuple)-1, 2):
             x["metapath"].append( categories[pathtuple[i]] )
@@ -40,6 +41,22 @@ def go(indir):
                 pq["reverse"] = True
             x["metapath"].append( pq )
         x["metapath"].append( categories[pathtuple[i]] )
+        for direct_edge, count in direct_edges.items():
+            y = {"count": count, "edge": []}
+            edges_tuple = ast.literal_eval(direct_edge)
+            for edge in edges_tuple:
+                pqnum = edge[0]
+                if pqnum < 0:
+                    pqnum = -pqnum
+                    pq = pqs[pqnum]
+                    pq["reverse"] = True
+                else:
+                    pq = pqs[pqnum]
+                y["edge"].append(pq)
+            x["direct_edges"].append(y)
+        results.append(x)
+    with open(os.path.join(indir, "processed_metapaths.json"), 'w') as outf:
+        json.dump(results, outf, indent=2)
 
 if __name__ == "__main__":
     indir = sys.argv[1]

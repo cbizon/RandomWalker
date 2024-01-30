@@ -131,14 +131,18 @@ def convert_to_meta_walk(walk, nodes_to_cats):
 def write_walks(meta_walks, outfname = "meta_walks.json"):
     with open(outfname, 'w') as outf:
         outf.write("{\n")
+        first = True
         for mw, direct_edges in meta_walks.items():
+            if first:
+                first = False
+            else:
+                outf.write(",\n")
             outf.write(f'  "{str(mw)}": {{')
             des = []
             for de, count in direct_edges.items():
                 des.append(f'"{str(tuple(de))}": {count}' )
             outf.write(", ".join(des))
-            outf.write("},\n")
-        outf.write("}\n")
+        outf.write("\n}\n")
 
 def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen, odir):
     num_nodes = len(nodes_to_ints)
