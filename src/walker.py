@@ -142,7 +142,7 @@ def write_walks(meta_walks, outfname = "meta_walks.json"):
             for de, count in direct_edges.items():
                 des.append(f'"{str(tuple(de))}": {count}' )
             outf.write(", ".join(des))
-        outf.write("\n}\n")
+        outf.write("}\n}\n")
 
 def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen, odir):
     num_nodes = len(nodes_to_ints)
