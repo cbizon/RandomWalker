@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 import json
@@ -104,11 +105,11 @@ def load_edges(inf, node_ids):
     print("Load time:", end - start)
     return neighbors, pq_to_num, onehops
 
-def generate_walk(num_nodes, neighborlist, walklen):
+def generate_walk(num_nodes, neighborlist, node_ints, cumcount, walklen):
     while True:
-        next_node = random.randint(0, num_nodes-1)
-        if len(neighborlist[next_node]) == 0:
-            continue
+        next_node = random.choices(node_ints, cum_weights=cumcount, k=1)[0]
+        #if len(neighborlist[next_node]) == 0:
+        #    continue
         walk = [next_node]
         used_nodes = set()
         used_nodes.add(next_node)
@@ -145,11 +146,14 @@ def write_walks(meta_walks, outfname = "meta_walks.json"):
         outf.write("}\n}\n")
 
 def random_walks(nodes_to_ints, nodes_to_cats, neighborlist, onehops, nwalks, walklen, odir):
+    node_ints = [i for i in range(len(neighborlist))]
+    edges_per_node = [ len(x) for x in neighborlist ]
+    cumulative_count = itertools.accumulate(edges_per_node)
     num_nodes = len(nodes_to_ints)
     meta_walks = defaultdict(lambda: defaultdict(int))
     start = dt.now()
     for i in range(nwalks):
-        walk = generate_walk(num_nodes, neighborlist, walklen)
+        walk = generate_walk(num_nodes, neighborlist, node_ints, cumulative_count, walklen)
         meta_walk = convert_to_meta_walk(walk, nodes_to_cats)
         if ( walk[0], walk[-1] ) in onehops:
             direct_edges = frozenset(onehops[(walk[0], walk[-1])] )
